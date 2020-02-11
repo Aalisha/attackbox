@@ -9,8 +9,6 @@ from scipy.linalg import qr
 import random
 
 start_learning_rate = 1.0
-MAX_ITER = 1000
-
 
 def quad_solver(Q, b):
     """
@@ -40,16 +38,12 @@ def sign(y):
     y_sign[y_sign==0] = 1
     return y_sign
 
-class OPT_attack_sign_SGD(object):
+class OPT_attack_sign_SGD_v2(object):
     def __init__(self, model, k=200, train_dataset=None):
         self.model = model
         self.k = k
-        self.train_dataset = train_dataset 
-        self.log = torch.ones(MAX_ITER,2)
+        self.train_dataset = train_dataset
 
-    def get_log(self):
-        return self.log
-    
     def attack_untargeted(self, x0, y0, alpha = 0.2, beta = 0.001, iterations = 1000, query_limit=20000,
                           distortion=None, seed=None, svm=False, momentum=0.0, stopping=0.0001):
         """ Attack the original image and return adversarial example
@@ -57,8 +51,6 @@ class OPT_attack_sign_SGD(object):
             train_dataset: set of training data
             (x0, y0): original image
         """
-
-
         model = self.model
         y0 = y0[0]
         query_count = 0
@@ -94,7 +86,7 @@ class OPT_attack_sign_SGD(object):
         print("==========> Found best distortion %.4f in %.4f seconds "
               "using %d queries" % (g_theta, timeend-timestart, query_count))
     
-        self.log[0][0], self.log[0][1] = g_theta, query_count
+    
         # Begin Gradient Descent.
         timestart = time.time()
         xg, gg = best_theta, g_theta
@@ -106,7 +98,7 @@ class OPT_attack_sign_SGD(object):
             if svm == True:
                 sign_gradient, grad_queries = self.sign_grad_svm(x0, y0, xg, initial_lbd=gg, h=beta)
             else:
-                sign_gradient, grad_queries = self.sign_grad_v1(x0, y0, xg, initial_lbd=gg, h=beta)
+                sign_gradient, grad_queries = self.sign_grad_v2(x0, y0, xg, initial_lbd=gg, h=beta)
             
             if False:
                 # Compare cosine distance with numerical gradient.
@@ -179,11 +171,11 @@ class OPT_attack_sign_SGD(object):
             distortions.append(gg)
 
             if query_count > query_limit:
-               break
+                break
             
-            if (i+1)%10==0:
+            if i%5==0:
                 print("Iteration %3d distortion %.4f num_queries %d" % (i+1, gg, query_count))
-            self.log[i+1][0], self.log[i+1][1] = gg, query_count
+            
             #if distortion is not None and gg < distortion:
             #    print("Success: required distortion reached")
             #    break
@@ -192,18 +184,15 @@ class OPT_attack_sign_SGD(object):
 #                 print("Success: stopping threshold reached")
 #                 break            
 #             prev_obj = gg
+
         target = model.predict_label(x0 + torch.tensor(gg*xg, dtype=torch.float).cuda())
         timeend = time.time()
         print("\nAdversarial Example Found Successfully: distortion %.4f target"
               " %d queries %d \nTime: %.4f seconds" % (gg, target, query_count, timeend-timestart))
-        
-        self.log[i+1:,0] = gg
-        self.log[i+1:,1] = query_count
-        #print(self.log)
         #print("Distortions: ", distortions)
-        return x0 + torch.tensor(gg*xg, dtype=torch.float).cuda()
+        return x0 + torch.tensor(gg*xg, dtype=torch.float).cuda(), gg
 
-    def sign_grad_v1(self, x0, y0, theta, initial_lbd, h=0.001, D=4, target=None):
+    def sign_grad_v2(self, x0, y0, theta, initial_lbd, h=0.001, D=4, target=None):
         """
         Evaluate the sign of gradient by formulat
         sign(g) = 1/Q [ \sum_{q=1}^Q sign( g(theta+h*u_i) - g(theta) )u_i$ ]
@@ -242,7 +231,7 @@ class OPT_attack_sign_SGD(object):
                 self.model.predict_label(x0+torch.tensor(initial_lbd*new_theta, dtype=torch.float).cuda()) != y0):
                 sign = -1
             queries += 1
-            sign_grad += u*sign
+            sign_grad += np.sign(u)*sign
         
         sign_grad /= K
 
@@ -256,27 +245,27 @@ class OPT_attack_sign_SGD(object):
         
         return sign_grad, queries
     
-    def sign_grad_v2(self, x0, y0, theta, initial_lbd, h=0.001, K=200):
-        """
-        Evaluate the sign of gradient by formulat
-        sign(g) = 1/Q [ \sum_{q=1}^Q sign( g(theta+h*u_i) - g(theta) )u_i$ ]
-        """
-        sign_grad = np.zeros(theta.shape)
-        queries = 0
-        for _ in range(K):
-            u = np.random.randn(*theta.shape)
-            u /= LA.norm(u)
-            
-            ss = -1
-            new_theta = theta + h*u
-            new_theta /= LA.norm(new_theta)
-            if self.model.predict_label(x0+torch.tensor(initial_lbd*new_theta, dtype=torch.float).cuda()) == y0:
-                ss = 1
-            queries += 1
-            sign_grad += sign(u)*ss
-        sign_grad /= K
-        return sign_grad, queries
-
+#    def sign_grad_v2(self, x0, y0, theta, initial_lbd, h=0.001, K=200):
+#        """
+#        Evaluate the sign of gradient by formulat
+#        sign(g) = 1/Q [ \sum_{q=1}^Q sign( g(theta+h*u_i) - g(theta) )u_i$ ]
+#        """
+#        sign_grad = np.zeros(theta.shape)
+#        queries = 0
+#        for _ in range(K):
+#            u = np.random.randn(*theta.shape)
+#            u /= LA.norm(u)
+#            
+#            ss = -1
+#            new_theta = theta + h*u
+#            new_theta /= LA.norm(new_theta)
+#            if self.model.predict_label(x0+torch.tensor(initial_lbd*new_theta, dtype=torch.float).cuda()) == y0:
+#                ss = 1
+#            queries += 1
+#            sign_grad += sign(u)*ss
+#        sign_grad /= K
+#        return sign_grad, queries
+#
 
     def sign_grad_svm(self, x0, y0, theta, initial_lbd, h=0.001, K=100, lr=5.0, target=None):
         """
@@ -501,7 +490,7 @@ class OPT_attack_sign_SGD(object):
             if svm == True:
                 sign_gradient, grad_queries = self.sign_grad_svm(x0, y0, xg, initial_lbd=gg, h=beta, target=target)
             else:
-                sign_gradient, grad_queries = self.sign_grad_v1(x0, y0, xg, initial_lbd=gg, h=beta, target=target)
+                sign_gradient, grad_queries = self.sign_grad_v2(x0, y0, xg, initial_lbd=gg, h=beta, target=target)
             
             if False:
                 # Compare cosine distance with numerical gradient.
@@ -575,10 +564,10 @@ class OPT_attack_sign_SGD(object):
             print("\nAdversarial Example Found Successfully: distortion %.4f target"
                   " %d queries %d LS queries %d \nTime: %.4f seconds" % (gg, target, query_count, ls_total, timeend-timestart))
 
-            return x0 + torch.tensor(gg*xg, dtype=torch.float).cuda()
+            return x0 + torch.tensor(gg*xg, dtype=torch.float).cuda(), gg
         else:
             print("Failed to find targeted adversarial example.")
-            return x0 
+            return x0, np.float('inf')    
     
     def fine_grained_binary_search_local_targeted(self, model, x0, y0, t, theta, initial_lbd=1.0, tol=1e-5):
         nquery = 0
@@ -637,7 +626,7 @@ class OPT_attack_sign_SGD(object):
         return lbd_hi, nquery
 
     def __call__(self, input_xi, label_or_target, target=None, distortion=None, seed=None,
-                 svm=False, query_limit=40000, momentum=0.0, stopping=0.0001, TARGETED=False):
+                 svm=False, query_limit=40000, momentum=0.0, stopping=0.0001):
         if target is not None:
             adv = self.attack_targeted(input_xi, label_or_target, target, distortion=distortion,
                                        seed=seed, svm=svm, query_limit=query_limit, stopping=stopping)
