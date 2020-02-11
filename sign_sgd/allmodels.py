@@ -281,6 +281,19 @@ def load_cifar10_data():
 
 #     return train_loader, test_loader, train_dataset, test_dataset
 
+def load_coco_data():
+    """ Load COCO data from torchvision.datasets 
+        input: None
+        output: minibatches of train and test sets 
+    """
+    train_dataset = dsets.CocoDetection(root = './data/coco/train2017/', annFile = './data/coco/annotations/instances_train2017.json',transform=transforms.ToTensor())
+    val_dataset =  dsets.CocoDetection(root = './data/coco/val2017/', annFile = './data/coco/annotations/instances_val2017.json',transform=transforms.ToTensor())
+    batch_size = 1
+    # Data Loader (Input Pipeline)
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = torch.utils.data.DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+
+    return train_loader, val_loader, train_dataset, val_dataset
 
 def load_imagenet_data():
     """ Load MNIST data from torchvision.datasets 
