@@ -1,7 +1,7 @@
 import time
-import random 
+import random
 import numpy as np
-import torch 
+import torch
 import torch.nn as nn
 import torchvision.datasets as dsets
 import torchvision.transforms as transforms
@@ -25,7 +25,7 @@ class IMAGENET():
         if torch.cuda.is_available():
             self.model = self.model.cuda()
             self.model = torch.nn.DataParallel(self.model, device_ids=[0])
- 
+
     def predict(self, image):
         #image = torch.clamp(image, -1, 1)
         if len(image.size())==3:
@@ -37,12 +37,12 @@ class IMAGENET():
             image[0] = torch.clamp(image[0], min=-0.485/0.229, max= (1-0.485)/0.229)
             image[1] = torch.clamp(image[1], min=-0.456/0.224, max= (1-0.456)/0.224)
             image[2] = torch.clamp(image[2], min = -0.406/0.225, max= (1-0.406)/0.225)
-            
+
         image = Variable(image, volatile=True).view(1,3,224,224)
         output = self.model(image)
         _, predict = torch.max(output.data, 1)
         return predict[0]
-    
+
     def predict_batch(self, image):
         #image = torch.clamp(image, -1 ,1)
         #image[:,0] = torch.clamp(image[:,0], min=-0.485/0.229, max= (1-0.485)/0.229)
@@ -97,7 +97,7 @@ class CIFAR10(nn.Module):
                    nn.BatchNorm2d(128),
                    nn.ReLU()]
         layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-        
+
         return nn.Sequential(*layers)
 
 
@@ -110,7 +110,7 @@ class CIFAR10(nn.Module):
         output = self(image)
         _, predict = torch.max(output.data, 1)
         return predict[0]
-    
+
     def predict_batch(self, image):
         self.eval()
         image = torch.clamp(image,0,1)
@@ -162,7 +162,7 @@ class MNIST(nn.Module):
                    nn.BatchNorm2d(64),
                    nn.ReLU()]
         layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
-        
+
         return nn.Sequential(*layers)
 
 
@@ -210,7 +210,7 @@ class SimpleMNIST(nn.Module):
             nn.MaxPool2d(2)
             )
         self.fc = nn.Linear(7*7*32, 10)
-        
+
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
@@ -237,9 +237,9 @@ def show_image(img):
         print("".join([remap[int(round(x))] for x in img[i*28:i*28+28]]))
 
 def load_mnist_data():
-    """ Load MNIST data from torchvision.datasets 
+    """ Load MNIST data from torchvision.datasets
         input: None
-        output: minibatches of train and test sets 
+        output: minibatches of train and test sets
     """
     # MNIST Dataset
     train_dataset = dsets.MNIST(root='./data/mnist', train=True, transform=transforms.ToTensor(), download=True)
@@ -252,9 +252,9 @@ def load_mnist_data():
     return train_loader, test_loader, train_dataset, test_dataset
 
 def load_cifar10_data():
-    """ Load MNIST data from torchvision.datasets 
+    """ Load MNIST data from torchvision.datasets
         input: None
-        output: minibatches of train and test sets 
+        output: minibatches of train and test sets
     """
     # CIFAR10 Dataset
     train_dataset = dsets.CIFAR10('./data/cifar10-py', download=True, train=True, transform= transforms.ToTensor())
@@ -267,9 +267,9 @@ def load_cifar10_data():
     return train_loader, test_loader, train_dataset, test_dataset
 
 # def load_imagenet_data():
-#     """ Load IMAGENET data from torchvision.datasets 
+#     """ Load IMAGENET data from torchvision.datasets
 #         input: None
-#         output: minibatches of train and test sets 
+#         output: minibatches of train and test sets
 #     """
 #     # CIFAR10 Dataset
 #     train_dataset = dsets.ImageNet('./data/imagenet-py', download=True, split='train', transform= transforms.ToTensor())
@@ -282,9 +282,9 @@ def load_cifar10_data():
 #     return train_loader, test_loader, train_dataset, test_dataset
 
 def load_coco_data():
-    """ Load COCO data from torchvision.datasets 
+    """ Load COCO data from torchvision.datasets
         input: None
-        output: minibatches of train and test sets 
+        output: minibatches of train and test sets
     """
     train_dataset = dsets.CocoDetection(root = './data/coco/train2017/', annFile = './data/coco/annotations/instances_train2017.json',transform=transforms.ToTensor())
     val_dataset =  dsets.CocoDetection(root = './data/coco/val2017/', annFile = './data/coco/annotations/instances_val2017.json',transform=transforms.ToTensor())
@@ -296,11 +296,11 @@ def load_coco_data():
     return train_loader, val_loader, train_dataset, val_dataset
 
 def load_imagenet_data():
-    """ Load MNIST data from torchvision.datasets 
+    """ Load MNIST data from torchvision.datasets
         input: None
-        output: minibatches of train and test sets 
+        output: minibatches of train and test sets
     """
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])                         
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     # train_dataset = dsets.ImageFolder(
     #     '/data/train',
     #     transforms.Compose([
@@ -347,14 +347,14 @@ class ImagenetTestDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         #label = torch.LongTensor(self.label[idx])
-        label = self.label[idx] 
+        label = self.label[idx]
         return image, label
 
     def __len__(self):
         return len(self.label)
 
 def imagenettest():
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) 
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     #test_dataset = ImagenetTestDataset('/data/test')
 
     test_dataset = ImagenetTestDataset('/data3/val', transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(), normalize,]))
@@ -376,16 +376,16 @@ def train_simple_mnist(model, train_loader):
         for i, (images, labels) in enumerate(train_loader):
             images = Variable(images)
             labels = Variable(labels)
-        
+
             # Forward + Backward + Optimize
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        
+
             if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f' 
+                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f'
                     %(epoch+1, num_epochs, i+1, loss.data[0]))
 
 
@@ -404,15 +404,15 @@ def train_mnist(model, train_loader):
             optimizer.zero_grad()
             images = Variable(images)
             labels = Variable(labels)
-        
+
             # Forward + Backward + Optimize
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        
+
             if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f' 
+                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f'
                     %(epoch+1, num_epochs, i+1, loss.data[0]))
 
 
@@ -460,15 +460,15 @@ def train_teacher(teacher, train_loader, test_loader, temp):
             optimizer.zero_grad()
             images = Variable(images)
             labels = Variable(labels)
-        
+
             # Forward + Backward + Optimize
-            outputs = teacher(images)           
+            outputs = teacher(images)
             loss = nllloss(m(outputs/temp), labels)
             loss.backward()
             optimizer.step()
-        
+
             if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f' 
+                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f'
                     %(epoch+1, num_epochs, i+1, loss.data[0]))
     file_n = './models/dd_mnist_teacher'+str(temp) + '.pt'
     save_model(teacher,file_n)
@@ -513,21 +513,21 @@ def train_student(student, teacher, train_loader, test_loader, temp):
             # Forward + Backward + Optimize
             label_t = m(teacher(images)/temp)
             #print(label_t)
-            outputs = student(images)     
+            outputs = student(images)
             labels = Variable(label_t.data)
             #print(outputs)
             loss = cross_entropy(nm(outputs/temp), labels)
             loss.backward()
             optimizer.step()
-        
+
             if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f' 
+                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f'
                     %(epoch+1, num_epochs, i+1, loss.data[0]))
 
     file_n = './models/dd_mnist_student'+str(temp) + '.pt'
     save_model(student,file_n)
     test_mnist(student,test_loader)
-         
+
 
 def train_cifar10(model, train_loader):
     # Loss and Optimizer
@@ -548,15 +548,15 @@ def train_cifar10(model, train_loader):
             optimizer.zero_grad()
             images = Variable(images)
             labels = Variable(labels)
-        
+
             # Forward + Backward + Optimize
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        
+
             if (i+1) % 100 == 0:
-                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f' 
+                print ('Epoch [%d/%d], Iter [%d] Loss: %.4f'
                     %(epoch+1, num_epochs, i+1, loss.data[0]))
     return model
 
@@ -627,10 +627,9 @@ if __name__ == '__main__':
     #load_model(teacher,'./models/dd_cifar_teacher100.pt')
     #test_cifar10(teacher, test_loader)
     #load_model(student,'./models/dd_mnist_student100.pt')
-    #train_cifar10(net,train_loader) 
+    #train_cifar10(net,train_loader)
     train_student(student, teacher, train_loader,test_loader,100)
     #test_cifar10(net, test_loader)
     #test_cifar10(student, test_loader)
     #save_model(net,'./models/mnist.pt')
     #net.eval()
-

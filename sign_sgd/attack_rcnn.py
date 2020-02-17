@@ -40,9 +40,9 @@ parser.add_argument('--gpu', default=1, type=int,
 
 def attack(algorithm, dataset, targeted, norm='l2', num=2500, stopping_criteria=None,
            query_limit=40000, start_from=0, gpu=0):
-    
+
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu);
-    
+
     print("Attacking:".format(num))
     print("    Number of samples - {0}".format(num))
     print("    Dataset - {0}".format(dataset.upper()))
@@ -55,7 +55,7 @@ def attack(algorithm, dataset, targeted, norm='l2', num=2500, stopping_criteria=
         print("    Stopping criteria - {0}".format(stopping_criteria))
     if start_from > 0:
         print("    Start from {0}".format(start_from))
-    
+
     if dataset == 'mnist':
         net = MNIST()
         net.cuda()
@@ -81,7 +81,7 @@ def attack(algorithm, dataset, targeted, norm='l2', num=2500, stopping_criteria=
     else:
         print("Invalid dataset")
         return
-    
+
     net.eval()
     model = net.module if torch.cuda.is_available() else net
     #amodel = PytorchModel(model, bounds=[0,1], num_classes=10)
@@ -96,23 +96,23 @@ def attack(algorithm, dataset, targeted, norm='l2', num=2500, stopping_criteria=
         if norm=='l2':
             attack_type = OPT_attack_sign_SGD_rcnn
         elif norm=='linf':
-            attack_type = OPT_attack_sign_SGD_lf    
+            attack_type = OPT_attack_sign_SGD_lf
     else:
         print("Invalid algorithm")
-        
+
     if attack_type is None:
         print("Invalid norm")
-    
+
     if targeted:
         attack = attack_type(model, train_dataset=train_dataset)
     else:
         attack = attack_type(model)
-        
+
     np.random.seed(0)
     print(num)
     seeds = np.random.randint(10000, size=[2*num])
     count = 0
-    
+
     for i, data in enumerate(test_loader):
         if i < start_from:
             continue
@@ -120,7 +120,7 @@ def attack(algorithm, dataset, targeted, norm='l2', num=2500, stopping_criteria=
             break
 
         xi = data[0][0]; yi = data[1]
-
+        print(yi)
         seed_index = i - start_from
         print(seed_index)
         np.random.seed(seeds[seed_index])
@@ -131,7 +131,7 @@ def attack(algorithm, dataset, targeted, norm='l2', num=2500, stopping_criteria=
         break
         if dist > 1e-8 and dist != float('inf'):
             count += 1
-        
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
